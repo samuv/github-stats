@@ -67,7 +67,7 @@ export const processInBatches = async <T, U>(
   for (let i = 0; i < batches.length; i++) {
     const batch = batches[i];
     const batchResults = await Promise.all(batch.map(processor));
-    results.push(...batchResults.filter(result => result !== null) as U[]);
+    results.push(...batchResults.filter((result): result is NonNullable<typeof result> => result !== null));
     
     if (i < batches.length - 1 && delayMs > 0) {
       await delay(delayMs);
@@ -87,6 +87,36 @@ export const withErrorHandling = <T extends any[], R>(
   } catch (error: any) {
     throw new Error(`${errorMessage}: ${error.message}`);
   }
+};
+
+// Retry logic for operations that may need time to complete
+export const withRetry = async <T, U extends T>(
+  operation: () => Promise<T>,
+  isValidResult: (result: T) => result is U,
+  maxRetries: number = 10,
+  delayMs: number = 1000
+): Promise<U> => {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const result = await operation();
+    
+    if (isValidResult(result)) {
+      return result; // TypeScript knows this is U due to type guard
+    }
+    
+    // Don't delay after the last attempt
+    if (attempt < maxRetries - 1) {
+      await delay(delayMs);
+    }
+  }
+  
+  // Make one final attempt and return result (may still be invalid)
+  const finalResult = await operation();
+  if (isValidResult(finalResult)) {
+    return finalResult;
+  }
+  
+  // If we still don't have valid data after all retries, throw an error
+  throw new Error(`Failed to get valid result after ${maxRetries} retries`);
 };
 
 // Math operations
