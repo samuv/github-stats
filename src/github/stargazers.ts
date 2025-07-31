@@ -700,15 +700,19 @@ export const calculateOptimalAnalysisLimit = async (
 			shouldUseAllStargazers = false;
 			console.error(`No GitHub token detected - using conservative limits`);
 		} else if (remainingRequests > 2000) {
-			// Plenty of requests available - use full analysis
-			analysisLimit = 1000;
+			// Plenty of requests available - analyze ALL stargazers
+			analysisLimit = Math.min(remainingRequests - 100, 50000); // Allow up to 50k stargazers or remaining requests minus buffer
 			shouldUseAllStargazers = true;
-			console.error(`High rate limit available - using full analysis`);
+			console.error(
+				`High rate limit available - analyzing ALL stargazers (up to ${analysisLimit})`,
+			);
 		} else if (remainingRequests > 500) {
 			// Moderate requests - good analysis
-			analysisLimit = Math.min(500, remainingRequests - 100);
+			analysisLimit = Math.min(remainingRequests - 100, 10000); // Allow up to 10k stargazers with moderate limits
 			shouldUseAllStargazers = true;
-			console.error(`Moderate rate limit - using balanced analysis`);
+			console.error(
+				`Moderate rate limit - analyzing up to ${analysisLimit} stargazers`,
+			);
 		} else if (remainingRequests > 100) {
 			// Low requests - limited analysis
 			analysisLimit = Math.min(100, remainingRequests - 20);
@@ -737,7 +741,7 @@ export const calculateOptimalAnalysisLimit = async (
 		// Safe fallback when rate limit check fails
 		const hasToken = !!process.env.GITHUB_TOKEN;
 		return {
-			analysisLimit: hasToken ? 200 : 50,
+			analysisLimit: hasToken ? 5000 : 50, // More generous fallback when authenticated
 			shouldUseAllStargazers: hasToken,
 		};
 	}

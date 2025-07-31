@@ -9,7 +9,7 @@ import type {
 	ReleaseAnalytics,
 	StarHistoryAnalytics,
 } from "../types.js";
-
+import * as rateLimitUtils from "../utils/rate-limit.js";
 import { createClient, defaultClient, type GitHubConfig } from "./client.js";
 import {
 	calculateDownloadStats,
@@ -135,12 +135,12 @@ export const createGitHubService = (config: GitHubServiceConfig = {}) => {
 					await getAllStargazersWithTimestamps(client)(identifier);
 				console.error(`Found ${allStargazers.length} total stargazers`);
 
-				// Prioritize recent stargazers as they're more likely to be active and influential
-				const stargazersToAnalyze =
-					allStargazers.length > analysisLimit
-						? allStargazers.slice(-analysisLimit)
-						: allStargazers;
-				stargazers = stargazersToAnalyze;
+				// When shouldUseAllStargazers is true, we analyze ALL stargazers
+				// No artificial limits - the rate limit calculation already determined this is safe
+				stargazers = allStargazers;
+				console.error(
+					`Will analyze ALL ${stargazers.length} stargazers (rate limits permit)`,
+				);
 			} else {
 				// Limited analysis when rate limits are tight
 				console.error(`Using limited analysis due to rate limits`);
@@ -227,11 +227,20 @@ export const createGitHubService = (config: GitHubServiceConfig = {}) => {
 		},
 	};
 
+	// Rate limit utilities
+	const rateLimitOps = {
+		getRateLimitStatus: rateLimitUtils.getRateLimitState,
+		isRateLimited: rateLimitUtils.isRateLimited,
+		getTimeUntilReset: rateLimitUtils.getTimeUntilReset,
+		waitForRateLimit: rateLimitUtils.waitForRateLimit,
+	};
+
 	return {
 		...repositoryOps,
 		...releaseOps,
 		...starOps,
 		...comprehensiveOps,
+		...rateLimitOps,
 	};
 };
 

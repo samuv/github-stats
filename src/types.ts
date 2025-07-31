@@ -49,6 +49,33 @@ export type GitHubLanguageStats =
 export type GitHubTrafficReferrer =
 	Endpoints["GET /repos/{owner}/{repo}/traffic/popular/referrers"]["response"]["data"][0];
 
+// Rate limit tracking types (immutable by design)
+export interface RateLimitStatus {
+	readonly limit: number;
+	readonly remaining: number;
+	readonly used: number;
+	readonly reset: number; // UTC epoch seconds
+	readonly resource: string;
+}
+
+export interface RateLimitState {
+	readonly core: RateLimitStatus;
+	readonly search?: RateLimitStatus;
+	readonly graphql?: RateLimitStatus;
+	readonly integration_manifest?: RateLimitStatus;
+	readonly source_import?: RateLimitStatus;
+	readonly code_scanning_upload?: RateLimitStatus;
+	readonly actions_runner_registration?: RateLimitStatus;
+	readonly scim?: RateLimitStatus;
+	readonly dependency_snapshots?: RateLimitStatus;
+}
+
+export interface RateLimitError extends Error {
+	status: number;
+	retryAfter?: number; // seconds to wait for secondary rate limits
+	resetTime?: number; // UTC epoch seconds for primary rate limits
+}
+
 export interface ReleaseAnalytics {
 	total_releases: number;
 	total_downloads: number;

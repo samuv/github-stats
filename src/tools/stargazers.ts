@@ -227,7 +227,7 @@ export const createStargazerHandlers = (
 		// Get the number of top influencers to return (defaults to 100, max 200)
 		const returnLimit = Math.min(args.limit || 100, 200);
 
-		// This will now analyze ALL stargazers (up to 1000 for performance) and return top N
+		// This will now analyze ALL stargazers (rate limit permitting) and return top N
 		const result = await github.getInfluencerAnalytics(
 			args.repository,
 			returnLimit,
