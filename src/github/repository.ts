@@ -13,7 +13,7 @@ import type {
   GitHubTrafficReferrer,
   GitHubSearchRepository
 } from '../types.js';
-import { parseRepoIdentifier, withErrorHandling, sum, average, calculateDaysBetween } from '../utils/helpers.js';
+import { parseRepoIdentifier, withErrorHandling, withRetry, sum, average, calculateDaysBetween } from '../utils/helpers.js';
 
 // Basic repository operations
 export const getRepository = (client: Octokit) => 
@@ -38,21 +38,29 @@ export const getContributors = (client: Octokit) =>
       repo,
       per_page: limit
     });
-    return response.data as GitHubContributor[];
+    return response.data;
   }, 'Failed to fetch contributors');
 
 export const getCommitActivity = (client: Octokit) => 
   withErrorHandling(async (identifier: string): Promise<GitHubCommitActivity[]> => {
     const { owner, repo } = parseRepoIdentifier(identifier);
-    const response = await client.rest.repos.getCommitActivityStats({ owner, repo });
     
-    // GitHub API can return null, undefined, or an array
-    const data = response.data as GitHubCommitActivityResponse;
-    if (!data || !Array.isArray(data)) {
-      return [];
-    }
+    // Use retry logic to handle GitHub's statistics computation delay
+    const data = await withRetry(
+      async (): Promise<GitHubCommitActivityResponse> => {
+        const response = await client.rest.repos.getCommitActivityStats({ owner, repo });
+        return response.data;
+      },
+      (data: GitHubCommitActivityResponse): data is GitHubCommitActivity[] => {
+        // Consider the result valid if it's an array with data
+        return Array.isArray(data) && data.length > 0;
+      },
+      10, // maxRetries
+      1000 // delayMs (1 second)
+    );
     
-    return data as GitHubCommitActivity[];
+    // TypeScript now knows data is GitHubCommitActivity[]
+    return data;
   }, 'Failed to fetch commit activity');
 
 export const getOpenIssues = (client: Octokit) => 
@@ -94,13 +102,13 @@ export const getTrafficReferrers = (client: Octokit) =>
   withErrorHandling(async (identifier: string): Promise<GitHubTrafficReferrer[]> => {
     const { owner, repo } = parseRepoIdentifier(identifier);
     
-    try {
-      const response = await client.rest.repos.getTopReferrers({
-        owner,
-        repo
-      });
-      return response.data as GitHubTrafficReferrer[];
-    } catch (error: any) {
+      try {
+    const response = await client.rest.repos.getTopReferrers({
+      owner,
+      repo
+    });
+    return response.data;
+  } catch (error: any) {
       // Handle 403 (insufficient permissions) or 404 (repo not found) gracefully
       if (error.status === 403) {
         console.warn(`Insufficient permissions to access traffic data for ${identifier}. Repository owner/admin access required.`);
