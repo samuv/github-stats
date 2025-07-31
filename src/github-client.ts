@@ -17,6 +17,7 @@ import type {
   InfluencerAnalytics,
   GitHubSearchRepository
 } from './types.js';
+import { withRetry } from './utils/helpers.js';
 
 export class GitHubClient {
   private octokit: Octokit;
@@ -103,7 +104,7 @@ export class GitHubClient {
         per_page: limit
       });
       
-      return response.data as GitHubContributor[];
+      return response.data;
     } catch (error: any) {
       throw new Error(`Failed to fetch contributors: ${error.message}`);
     }
@@ -129,24 +130,31 @@ export class GitHubClient {
   }
 
   /**
-   * Get commit activity statistics
+   * Get commit activity statistics with retry logic
    */
   async getCommitActivity(repoIdentifier: string): Promise<GitHubCommitActivity[]> {
     const { owner, repo } = this.parseRepoIdentifier(repoIdentifier);
     
     try {
-      const response = await this.octokit.rest.repos.getCommitActivityStats({
-        owner,
-        repo
-      });
+      // Use retry logic to handle GitHub's statistics computation delay
+      const data = await withRetry(
+        async (): Promise<GitHubCommitActivityResponse> => {
+          const response = await this.octokit.rest.repos.getCommitActivityStats({
+            owner,
+            repo
+          });
+          return response.data;
+        },
+        (data: GitHubCommitActivityResponse): data is GitHubCommitActivity[] => {
+          // Consider the result valid if it's an array with data
+          return Array.isArray(data) && data.length > 0;
+        },
+        10, // maxRetries
+        1000 // delayMs (1 second)
+      );
       
-      // GitHub API can return null, undefined, or an array
-      const data = response.data as GitHubCommitActivityResponse;
-      if (!data || !Array.isArray(data)) {
-        return [];
-      }
-      
-      return data as GitHubCommitActivity[];
+      // TypeScript now knows data is GitHubCommitActivity[]
+      return data;
     } catch (error: any) {
       throw new Error(`Failed to fetch commit activity: ${error.message}`);
     }
@@ -784,11 +792,11 @@ export class GitHubClient {
               company: user.company,
               location: user.location,
               blog: user.blog,
-              twitter_username: user.twitter_username,
+              twitter_username: user.twitter_username ?? null,
               created_at: user.created_at,
               starred_at: stargazer.starred_at,
               influence_score: influenceScore
-            } as InfluencerDeveloper;
+            };
           } catch (error: any) {
             console.error(`Failed to fetch user ${stargazer.login}:`, error.message);
             return null;
@@ -796,7 +804,7 @@ export class GitHubClient {
         });
         
         const batchResults = await Promise.all(batchPromises);
-        influencers.push(...batchResults.filter(user => user !== null) as InfluencerDeveloper[]);
+        influencers.push(...batchResults.filter((user): user is NonNullable<typeof user> => user !== null));
         
         // Small delay between batches to respect rate limits
         if (i + batchSize < stargazersData.length) {
