@@ -285,11 +285,11 @@ export const getInfluencerProfiles = (client: Octokit) =>
           company: user.company,
           location: user.location,
           blog: user.blog,
-          twitter_username: user.twitter_username,
+          twitter_username: user.twitter_username ?? null,
           created_at: user.created_at,
           starred_at: stargazer.starred_at,
           influence_score: influenceScore
-        } as InfluencerDeveloper;
+        };
       } catch (error: any) {
         console.error(`Failed to fetch user ${stargazer.login}:`, error.message);
         return null;
