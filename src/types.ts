@@ -25,9 +25,14 @@ export type GitHubRelease = Endpoints['GET /repos/{owner}/{repo}/releases/{relea
 export type GitHubIssue = Endpoints['GET /repos/{owner}/{repo}/issues/{issue_number}']['response']['data'];
 export type GitHubPullRequest = Endpoints['GET /repos/{owner}/{repo}/pulls']['response']['data'][0];
 export type GitHubContributor = Endpoints['GET /repos/{owner}/{repo}/contributors']['response']['data'][0];
-// Commit activity can return either an array of activity data or an empty object
+// GitHub's commit activity API response - can be null during computation or array when ready
 export type GitHubCommitActivityResponse = Endpoints['GET /repos/{owner}/{repo}/stats/commit_activity']['response']['data'];
-export type GitHubCommitActivity = { total: number; week: number; days: number[]; };
+// Individual week activity object
+export type GitHubCommitActivity = {
+  total: number;
+  week: number;
+  days: number[];
+};
 export type GitHubLanguageStats = Endpoints['GET /repos/{owner}/{repo}/languages']['response']['data'];
 export type GitHubTrafficReferrer = Endpoints['GET /repos/{owner}/{repo}/traffic/popular/referrers']['response']['data'][0];
 
