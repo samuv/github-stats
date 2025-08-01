@@ -71,6 +71,38 @@ To publish a new Docker image:
 
 This will automatically trigger the Docker build and publish the image with proper version tags.
 
+## Development
+
+### Code Quality & CI
+
+This project uses [Biome](https://biomejs.dev/) for linting and formatting, with automated CI checks on every push and pull request.
+
+**Available Scripts:**
+```bash
+# Format code
+pnpm format
+
+# Lint and fix issues
+pnpm lint
+
+# Check code quality (local development)
+pnpm check
+
+# Check code quality (CI - no auto-fix)
+pnpm ci
+
+# Build TypeScript
+pnpm build
+```
+
+**GitHub Actions:**
+- **Docker Workflow**: Runs quality checks, builds TypeScript, then builds/publishes Docker image
+  - **Quality checks first**: `pnpm run ci` (fails fast if code quality issues)
+  - **TypeScript build**: `pnpm run build` (ensures clean compilation)
+  - **Docker build**: Only runs if quality checks pass
+  - **On PRs**: Tests and builds (doesn't publish)
+  - **On releases**: Tests, builds, and publishes to GitHub Container Registry
+
 ### Pull and Run
 
 ```bash
