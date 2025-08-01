@@ -96,9 +96,12 @@ pnpm build
 ```
 
 **GitHub Actions:**
-- **Docker Workflow**: Automatically runs `pnpm ci`, `pnpm build`, and Docker build on PRs and releases
-  - On PRs: Tests code quality and build (doesn't publish)
-  - On releases: Tests, builds, and publishes to GitHub Container Registry
+- **Docker Workflow**: Runs quality checks, builds TypeScript, then builds/publishes Docker image
+  - **Quality checks first**: `pnpm run ci` (fails fast if code quality issues)
+  - **TypeScript build**: `pnpm run build` (ensures clean compilation)
+  - **Docker build**: Only runs if quality checks pass
+  - **On PRs**: Tests and builds (doesn't publish)
+  - **On releases**: Tests, builds, and publishes to GitHub Container Registry
 
 ### Pull and Run
 
