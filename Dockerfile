@@ -22,6 +22,9 @@ RUN pnpm install --frozen-lockfile
 # Copy source code with correct ownership
 COPY --chown=node:node . .
 
+# Run code quality checks
+RUN pnpm ci
+
 # Build the TypeScript code
 RUN pnpm run build
 
