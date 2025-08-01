@@ -49,16 +49,52 @@ This MCP server provides the following tools:
 
 ## Docker Usage
 
-This MCP server is designed to be used with Docker. The Docker image will be published to GitHub Container Registry.
+This MCP server is designed to be used with Docker. The Docker image is automatically built and published to GitHub Container Registry (GHCR) via GitHub Actions.
+
+### Automated Publishing
+
+The Docker image is automatically built and published when:
+- A new release is published on GitHub (e.g., `v1.0.0`)
+- Manually triggered from the GitHub Actions tab
+- Pull requests are created (builds only, doesn't publish)
+
+### Creating a Release
+
+To publish a new Docker image:
+
+1. Go to your GitHub repository
+2. Click on "Releases" in the right sidebar
+3. Click "Create a new release"
+4. Choose or create a new tag (e.g., `v1.0.0`)
+5. Fill in the release title and description
+6. Click "Publish release"
+
+This will automatically trigger the Docker build and publish the image with proper version tags.
 
 ### Pull and Run
 
 ```bash
-# Pull the latest image
-docker pull ghcr.io/[your-username]/github-stats:latest
+# Pull the latest image from GitHub Container Registry
+docker pull ghcr.io/[your-username]/github-stats-mcp:latest
 
 # Run the MCP server
-docker run -e GITHUB_TOKEN=your_token_here ghcr.io/[your-username]/github-stats:latest
+docker run -e GITHUB_TOKEN=your_token_here ghcr.io/[your-username]/github-stats-mcp:latest
+
+# Or run a specific version
+docker pull ghcr.io/[your-username]/github-stats-mcp:v1.0.0
+docker run -e GITHUB_TOKEN=your_token_here ghcr.io/[your-username]/github-stats-mcp:v1.0.0
+```
+
+### Local Development
+
+For local development, you can build the image yourself:
+
+```bash
+# Build locally using the provided script
+pnpm run docker:build
+
+# Or build manually
+docker build -t github-stats-mcp:latest .
 ```
 
 ### Environment Variables
