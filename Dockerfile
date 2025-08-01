@@ -23,7 +23,7 @@ RUN pnpm install --frozen-lockfile
 COPY --chown=node:node . .
 
 # Run code quality checks
-RUN pnpm ci
+RUN pnpm run ci
 
 # Build the TypeScript code
 RUN pnpm run build
